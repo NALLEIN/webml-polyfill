@@ -71,6 +71,8 @@ export default class NeuralNetworkContext {
     this.BATCH_TO_SPACE_ND = OperationCode.BATCH_TO_SPACE_ND;
     this.TRANSPOSE = OperationCode.TRANSPOSE;
     this.MAXIMUM = OperationCode.MAXIMUM;
+    this.ARGMAX = OperationCode.ARGMAX;
+    this.ARGMIN =OperationCode.ARGMIN;
     this.ATROUS_CONV_2D = OperationCode.ATROUS_CONV_2D;
     this.ATROUS_DEPTHWISE_CONV_2D = OperationCode.ATROUS_DEPTHWISE_CONV_2D;
   }

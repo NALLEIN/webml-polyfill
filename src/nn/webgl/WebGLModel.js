@@ -629,6 +629,18 @@ export default class WebGLModel {
         const output = operands[outputs[0]];
         output.assign(tf.maximum(input1, input2));
       } break;
+      case OperationCode.ARGMAX: {
+        const input1 = operands[inputs[0]];
+        const input2 = operands[inputs[1]].value[0];
+        const output = operands[outputs[0]];
+        output.assign(tf.argMax(input1,input2));
+      } break;
+      case OperationCode.ARGMIN: {
+        const input1 = operands[inputs[0]];
+        const input2 = operands[inputs[1]].value[0];
+        const output = operands[outputs[0]];
+        output.assign(tf.argMin(input1,input2));
+      } break;
       default: {	
         throw new Error(`Operation ${op} is not supported`);	
       }
