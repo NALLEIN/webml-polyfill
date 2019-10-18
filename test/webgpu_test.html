@@ -1,0 +1,23 @@
+<html>
+    <head>
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"> </script>
+        <meta charset="utf-8">
+        <title>WebML Polyfill | Mocha Tests</title>
+    </head>
+
+    <body>
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+        <!--script src="https://cdnjs.cloudflare.com/ajax/libs/mocha/4.0.1/mocha.min.js"></script-->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mocha/5.2.0/mocha.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/chai/4.1.2/chai.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/fetch/2.0.3/fetch.min.js"></script>
+        <script src="../dist/webml-polyfill.js"></script>
+        <script src="./utils.js"></script>
+
+        <h4>WebGPU Test <hr/></h4>
+        <div id="op1">Computing op1...</div>
+        <div id="op2">Computing op2...</div>
+        <script src="./cts/test/V1_0/webgpu_test_1.js"></script>     
+     </body>
+    </html>

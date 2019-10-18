@@ -1,4 +1,6 @@
 import * as tf from '@tensorflow/tfjs-core';
+import * as backend_webgpu from 'local_webgpu';
+import "babel-polyfill";
 import { FuseCode, OperandCode, OperationCode, PaddingCode, PreferenceCode } from '../Enums';
 import Graph from '../GraphUtils';
 import * as utils from '../utils';
