@@ -43,6 +43,10 @@
     "npmlog": "^4.1.2",
     "globby": "^8.0.1",
     "rimraf": "^2.6.2",
-    "@tensorflow/tfjs-core": "1.2.11"
+    "@tensorflow/tfjs-core": "^1.5.1",
+    "@webgpu/glslang": "0.0.12",
+    "@webgpu/types": "0.0.18",
+    "local_tfjs": "file:/Users/test/Documents/NALLEIN/forkedRepos/tfjs-polyfill/tfjs-core/dist",
+    "local_webgpu": "file:/Users/test/Documents/NALLEIN/forkedRepos/tfjs-polyfill/tfjs-backend-webgpu/dist"
   }
 }

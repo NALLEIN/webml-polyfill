@@ -1,4 +1,8 @@
 import * as tf from '@tensorflow/tfjs-core';
+import * as tf_webgpu from 'local_webgpu';
+// import * as tf from '../../../../tfjs-raw/tfjs-core/src/index';
+// import * as tf_webgpu from '../../../../tfjs-raw/tfjs-backend-webgpu/src/index'
+
 import { FuseCode, OperandCode, OperationCode, PaddingCode, PreferenceCode } from '../Enums';
 import Graph from '../GraphUtils';
 import * as utils from '../utils';
@@ -6,7 +10,7 @@ import CyclicProfiler from '../instrument';
 
 var warmUpRuns = 1;
 
-export default class WebGLModel {
+export default class WebGPUModel {
   /**
    * Create WebGLModel class in nn/Model.js
    *
@@ -18,15 +22,15 @@ export default class WebGLModel {
     this._model = model;
     this._subgraphs = [];
     this._operands = [];
-    this._nnOperands = [];  // copies of input/output tensors of WebNN subgraph
+    this._nnOperands = [];  // copies of input/output tensors of WebNN subgraph 
     this._preference = PreferenceCode.FAST_SINGLE_ANSWER;
     this._prepared = false;
     this._profiler = null;
-
-    if (tf.backend().floatPrecision() === 16) {
-      console.warn(
-          'The current floating point operation precision is only 16-bit');
-    }
+    // tfjs 1.3 and higher version use fp16 as default 
+    // if (tf.backend().floatPrecision() === 16) {
+    //   console.warn(
+    //       'The current floating point operation precision is only 16-bit');
+    // }
   }
 
   /** Called in nn/Compilation.js */
@@ -70,18 +74,18 @@ export default class WebGLModel {
             const operand = this._model._operands[tensorId];
             if (utils.isTensor(operand.type)) {
               const type = this._getOperandType(operand.type);
-              if (operand.value !== null) {
+              if (operand.value !== null) {   
                 // constant tensor
                 this._operands[tensorId] =
                     tf.tensor(operand.value, operand.dimensions, type);
-              } else {
-                // variable tensor
+              } else {                            
+                // variable tensor 
                 const zeroTensor = tf.zeros(operand.dimensions, type);
                 this._operands[tensorId] = tf.variable(zeroTensor);
                 zeroTensor.dispose();
               }
             } else {
-              this._operands[tensorId] = operand;
+              this._operands[tensorId] = operand;   
             }
           }
           this._changeWeightsFormat(operation);
@@ -143,8 +147,8 @@ export default class WebGLModel {
   /**
    * Called in nn/Execution.js
    *
-   * @param {Map} inputs
-   * @param {Map} outputs
+   * @param {Map} inputs 
+   * @param {Map} outputs 
    */
   async execute(inputs, outputs) {
     if (!this._prepared) {
@@ -179,7 +183,7 @@ export default class WebGLModel {
 
     // fill output tensors
     outputs.forEach((output) => {
-      const operand = this._nnOperands[output.index];
+      const operand = this._nnOperands[output.index];  
       output.buffer.set(operand);
     });
   }
@@ -224,13 +228,13 @@ export default class WebGLModel {
         }
       }
 
-      // add the operation to the submodel
+      // add the operation to the submodel 
       const operationInputs = operation.inputs.map(i => globalIdToLocalId[i]);
       const operationOutputs = operation.outputs.map(i => globalIdToLocalId[i]);
       submodel.addOperation(operation.type, operationInputs, operationOutputs);
     }
 
-    // indentify the input and output tensors of the submodel
+    // indentify the input and output tensors of the submodel 
     const submodelInputs = inTensors.map(i => globalIdToLocalId[i]);
     const submodelOutputs = outTensors.map(i => globalIdToLocalId[i]);
     submodel.identifyInputsAndOutputs(submodelInputs, submodelOutputs);
@@ -279,9 +283,6 @@ export default class WebGLModel {
   }
 
   async _executeGlSubgraph(subgraph) {
-    tf.webgl.forceHalfFloat();
-    console.info('WEBGL_FORCE_F16_TEXTURES : ',tf.ENV.getBool('WEBGL_FORCE_F16_TEXTURES'));
-    console.info('floatPercision : ',tf.backend().floatPrecision());    
     for (const operation of subgraph.operations) {
       tf.tidy(() => this._executeGlOperation(operation));
     }
@@ -291,7 +292,7 @@ export default class WebGLModel {
     for (const tensorId of subgraph.outputs) {
       const buffer = this._nnOperands[tensorId];
       const operand = this._operands[tensorId];
-      buffer.set(operand.dataSync());
+      buffer.set(await operand.data());
       // const promise = operand.data().then((data) => buffer.set(data));
       // queue.push(promise);
     }
@@ -523,7 +524,7 @@ export default class WebGLModel {
                   input.maxPool([filterH, filterW],
                                 [strideH, strideW],
                                 paddingLeft, 'floor')));
-            }
+            }            
           } else {
             if (op === OperationCode.AVERAGE_POOL_2D) {
               throw new Error(
@@ -555,7 +556,10 @@ export default class WebGLModel {
         const targetShape = operands[inputs[1]];
         const output = operands[outputs[0]];
         if (targetShape.value === undefined) {
-          targetShape.value = targetShape.dataSync();
+          //const typedArrayID = inputs[1];
+          const operand = this._model._operands[inputs[1]];
+          if(operand.value === null) targetShape.value = targetShape.dataSync(); 
+          else targetShape.value = Array.apply([],operand.value);
         }
         output.assign(input.reshape(targetShape.value));
       } break;
@@ -609,7 +613,11 @@ export default class WebGLModel {
         if (blockShape.value === undefined) {
           // blockShape.dataSync() return Int32Array,
           // which should be converted to Array here.
-          blockShape.value = Array.apply([], blockShape.dataSync());
+          //const typedArrayID = inputs[1];
+          const operand = this._model._operands[inputs[1]];
+          if(operand.value === null) blockShape.value = blockShape.dataSync();
+          else 
+            blockShape.value = Array.apply([], operand.value);
         }
         output.assign(input.batchToSpaceND(blockShape.value, crops));
       } break;
@@ -619,18 +627,15 @@ export default class WebGLModel {
         const output = operands[outputs[0]];
         if (perm !== undefined) {
           if (perm.value === undefined) {
-            perm.value = perm.dataSync();
+            //const typedArrayID = inputs[1];
+            const operand = this._model._operands[input[1]];
+            if(operand.value === null) prem.value = perm.dataSync();
+            else perm.value = Array.apply([],operand.value);
           }
           output.assign(input.transpose(perm.value));
         } else {
           output.assign(input.transpose());
         }
-      } break;
-      case OperationCode.ARGMAX: {
-        const input1 = operands[inputs[0]];
-        const input2 = operands[inputs[1]].value[0];
-        const output = operands[outputs[0]];
-        output.assign(tf.argMax(input1, input2));
       } break;
       case OperationCode.MAXIMUM: {
         const input1 = operands[inputs[0]];
@@ -638,19 +643,8 @@ export default class WebGLModel {
         const output = operands[outputs[0]];
         output.assign(tf.maximum(input1, input2));
       } break;
-      case OperationCode.PRELU: {
-        const input1 = operands[inputs[0]];
-        const input2 = operands[inputs[1]];
-        const output = operands[outputs[0]];
-        output.assign(tf.prelu(input1, input2));
-      } break;
-      case OperationCode.LOGISTIC: {
-        const input1 = operands[inputs[0]];
-        const output = operands[outputs[0]];
-        output.assign(tf.sigmoid(input1));
-      } break;
-      default: {
-        throw new Error(`Operation ${op} is not supported`);
+      default: {	
+        throw new Error(`Operation ${op} is not supported`);	
       }
     }
   }
@@ -709,13 +703,18 @@ export default class WebGLModel {
     })
   }
 
-  static _supportWebGL() {
-    tf.setBackend('webgl');
-    return tf.getBackend() === 'webgl';
+  static _supportWebGPU() {
+    tf.setBackend('webgpu');
+    tf.ready();
+    return tf.getBackend() === "webgpu";
+  }
+
+  static _getBackend() {
+    return tf.getBackend();
   }
 
   getSubgraphsSummary() {
-    return this._subgraphs.map((graph, i) =>
+    return this._subgraphs.map((graph, i) => 
         `Subgraph ${i}\t (${graph.backend}):\t{${graph.summary}}`);
   }
 
@@ -748,3 +747,4 @@ export default class WebGLModel {
     };
   }
 }
+

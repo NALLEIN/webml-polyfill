@@ -2,7 +2,8 @@ import {OperationCode, OperandCode, PaddingCode, PreferenceCode, FuseCode, Resul
 import Model from './Model'
 import Compilation from './Compilation'
 import Execution from './Execution'
-import WebGLModel from './webgl/WebGLModel'
+//import WebGLModel from './webgl/WebGLModel'
+import WebGPUModel from './webgl/WebGPUModel'
 
 export default class NeuralNetworkContext {
   constructor() {
@@ -11,7 +12,8 @@ export default class NeuralNetworkContext {
     this._initFusedActivationFunctionTypes();
     this._initImplicitPaddingTypes();
     this._initExecutionPreferenceTypes();
-    this.supportWebGL = WebGLModel._supportWebGL();
+    //this.supportWebGL = WebGLModel._supportWebGL();
+    this.supportWeGPU = WebGPUModel._supportWebGPU();
     this.supportWasm = !!window.WebAssembly;
   }
 
@@ -21,8 +23,9 @@ export default class NeuralNetworkContext {
    * @param {options} options.backend - model backend.
    */
   async createModel(options = {}) {
-    if (options.backend === 'WebGL' && !this.supportWebGL) {
-      return "WebGL is not available";
+    if (options.backend === 'WebGL' && !this.supportWebGPU ) {
+      if(! (WebGPUModel._getBackend() === "webgpu") )
+      return "WebGPU is not available";   
     } else if (!this.supportWasm) {
       return "WebAssembly is not available";
     }

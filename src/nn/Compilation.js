@@ -2,7 +2,8 @@ import {PreferenceCode,ResultCode} from './Enums'
 import Device from './wasm/Device'
 import * as utils from './utils'
 import Execution from './Execution'
-import WebGLModel from './webgl/WebGLModel'
+//import WebGLModel from './webgl/WebGLModel'
+import WebGPUModel from './webgl/WebGPUModel'
 
 export default class Compilation {
   /**
@@ -58,7 +59,7 @@ export default class Compilation {
         this._preparedModel = await this._device.prepareModel(this._model);
       } break;
       case 'WebGL': {
-        this._preparedModel = new WebGLModel(this._model);
+        this._preparedModel = new WebGPUModel(this._model);
         await this._preparedModel.prepareModel();
       } break;
       default: {
