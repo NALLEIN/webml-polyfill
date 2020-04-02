@@ -663,11 +663,6 @@ export default class WebGLModel {
         let i = 0;
         const input = operands[inputs[i++]];
         const filter = operands[inputs[i++]];
-        // [outChannels, filterH, filterW, inChannels]
-        // => [filterHeight, filterWidth, outDepth, inDepth]
-        // https://js.tensorflow.org/api/0.14.1/#conv2dTranspose
-        // TODO: move the tranpose to _changeWeightsFormat
-        const filter_trans = filter.transpose([1, 2, 0, 3]);
         const bias = operands[inputs[i++]];
         const output = operands[outputs[0]];
         let strideW, strideH;
@@ -679,7 +674,7 @@ export default class WebGLModel {
         strideW = operands[inputs[i++]].value[0];
         strideH = operands[inputs[i++]].value[0];
         output.assign(input.pad([[0, 0], [paddingTop, paddingBottom], [paddingLeft, paddingRight], [0, 0]])
-                           .conv2dTranspose(filter_trans, output.shape, 
+                           .conv2dTranspose(filter, output.shape, 
                                             [strideH, strideW], 'valid')
                            .add(bias));
       } break;
@@ -711,6 +706,15 @@ export default class WebGLModel {
         const inputs = operation.inputs;
         const filter = this._operands[inputs[1]];
         this._operands[inputs[1]] = filter.transpose([1, 2, 3, 0]);
+        filter.dispose();
+      } break;
+      case OperationCode.CONV_TRANSPOSE: {
+        // [outChannels, filterH, filterW, inChannels]
+        // => [filterHeight, filterWidth, outDepth, inDepth]
+        // https://js.tensorflow.org/api/0.14.1/#conv2dTranspose
+        const inputs = operation.inputs;
+        const filter = this._operands[inputs[1]];
+        this._operands[inputs[1]] = filter.transpose([1, 2, 0, 3]);
         filter.dispose();
       } break;
       case OperationCode.DEPTHWISE_CONV_2D:
