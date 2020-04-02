@@ -928,10 +928,28 @@ class OnnxModelImporter {
           const convFilterId = this._getTensorIdByName(convFilter);
           const convFilterType = this._getTensorTypeByName(convFilter);
           const dims = convFilterType.dimensions;
-          const nChannels = dims[1];
+          // https://github.com/onnx/onnx/blob/master/docs/Operators.md#convtranspose
+          // Filter shape:  (C x M/group x kH x kW)
+          // getTensorData reorder it to CHWM
+          // Here reorder CHWM to MHWC (OHWI) for WebNN API
+          let chwm = this._getOperandValueByName(convFilter);
+          let mhwcData = new Float32Array(chwm.length);
+          const C = dims[0];
+          const H = dims[1];
+          const W = dims[2];
+          const M = dims[3];
+          for (let c = 0; c < C; ++c)
+            for (let h = 0; h < H; ++h)
+              for (let w = 0; w < W; ++w)
+                for (let m = 0; m < M; ++m)
+                  mhwcData[m*H*W*C + h*W*C + w*C + c] = chwm[c*H*W*M + h*W*M + w*M + m];
+
+          this._setOperandValue(convFilterId, mhwcData);
+          convFilterType.dimensions[0] = M;
+          convFilterType.dimensions[3] = C;
           const convBiasId = typeof convBias !== 'undefined' ? // optional bias
             this._getTensorIdByName(convBias) :
-            this._addTensorFloat32(new Array(nChannels).fill(0), [nChannels]);
+            this._addTensorFloat32(new Array(C).fill(0), [C]);
           inputs.push(this._getTensorIdByName(input));
           inputs.push(convFilterId);
           inputs.push(convBiasId);
@@ -964,15 +982,14 @@ class OnnxModelImporter {
           inputs.push(this._addScalarInt32(strideX));
           inputs.push(this._addScalarInt32(strideY));
 
-          // Add output
-          const output = node.output[0];
+          let output = node.output[0];
           const inputType = this._getTensorTypeByName(input);
           const batch = inputType.dimensions[0];
           const inputHeight = inputType.dimensions[1];
           const inputWidth = inputType.dimensions[2];
           const outputHeight = Math.floor((inputHeight - 1) * strideY - paddingHeightBegin - paddingHeightEnd + kernelHeight);          
           const outputWidth = Math.floor((inputWidth - 1) * strideX - paddingWidthBegin - paddingWidthEnd + kernelWidth);
-          const outputChannels = nChannels;
+          const outputChannels = M;
           const outputDims = [batch, outputHeight, outputWidth, outputChannels];
           const outputType = {type: this._nn.TENSOR_FLOAT32, dimensions: outputDims};
           const outputId = this._addNewTensorOperand(output, outputType);
