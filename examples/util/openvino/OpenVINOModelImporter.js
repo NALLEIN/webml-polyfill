@@ -349,6 +349,7 @@ class OpenVINOModelImporter {
 
           let output = node.outputs[0];
           let nextNode = graph.nodes[i+1];
+          // let nextNode2 = graph.nodes[i+2];
           if (nextNode && ['Clamp', 'ReLU'].includes(nextNode.operator) &&
               node.outputs[0].graphId() === nextNode.inputs[0].graphId()) {
             // Fuse relu
@@ -356,6 +357,15 @@ class OpenVINOModelImporter {
             i++;
             console.log(`  fuse relu: output of ${nextNode.name}->${node.name}`);
             output = nextNode.outputs[0];
+
+            // if (nextNode2 && ['Clamp', 'ReLU'].includes(nextNode2.operator) &&
+            // nextNode.outputs[0].graphId() === nextNode2.inputs[0].graphId()) {
+            //   // Fuse relu
+            //   inputs.push(this._addScalarInt32(this._getFuseCode(nextNode2)));
+            //   i++;
+            //   console.log(`  fuse relu: output of ${nextNode2.name}->${nextNode.name}`);
+            // }
+            // output = nextNode2.outputs[0];
           } else {
             inputs.push(this._addScalarInt32(this._nn.FUSED_NONE));
           }
@@ -814,8 +824,9 @@ class OpenVINOModelImporter {
         } break;
         case 'ReLU': {
           const input = node.inputs[0];
-          console.log(`  input shape: [${input.shape()}]`);
           inputs.push(this._getTensorId(input));
+          console.log(`  inputs shape: ` +
+              `[${node.inputs.map((input) => input.shape()).join('], [')}]`);
 
           const output = node.outputs[0];
           const outDims = output.shape();
@@ -825,8 +836,7 @@ class OpenVINOModelImporter {
           const outputId = this._addNamedOperand(output.graphId(), outputType);
           outputs.push(outputId);
           console.log(`  output shape: [${outDims}]`);
-
-          opCode = this._nn.PRELU;
+          opCode = this._nn.RELU;
         } break;
         default: {
           throw new Error(`${node.operator} is not supported.`);
