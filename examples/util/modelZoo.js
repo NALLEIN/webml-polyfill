@@ -663,6 +663,30 @@ const modelZoo = {
       },
       intro: 'Photo-realistic single image Super-Resolution using a generative adversarial network.',
       paperUrl: 'https://arxiv.org/abs/1609.04802'
+    },
+    {
+      modelName: 'single-image-super-resolution-1032',
+      format: 'OpenVINO',
+      modelId: 'image-super-resolution-1032model',
+      modelSize: '120KB',
+      inputSize: [1, 3, 270, 480],
+      outputSize: [1, 3, 1080, 1920],
+      scale: 4,
+      modelFile: '../super_resolution/model/single-image-super-resolution-1032.bin',
+      intro: 'An Attention-Based Approach for Single Image Super Resolution',
+      paperUrl: 'https://arxiv.org/abs/1807.06779'
+    },
+    {
+      modelName: 'single-image-super-resolution-1033',
+      format: 'OpenVINO',
+      modelId: 'image-super-resolution-1033model',
+      modelSize: '122KB',
+      inputSize: [1, 3, 360, 640],
+      outputSize: [1, 3, 1080, 1920],
+      scale: 3,
+      modelFile: '../super_resolution/model/single-image-super-resolution-1033.bin',
+      intro: 'An Attention-Based Approach for Single Image Super Resolution',
+      paperUrl: 'https://arxiv.org/abs/1807.06779'
     }
   ],
 

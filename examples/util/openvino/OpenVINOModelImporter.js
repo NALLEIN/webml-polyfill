@@ -214,6 +214,7 @@ class OpenVINOModelImporter {
     if (!this._tensorIds.hasOwnProperty(name)) {
       throw new Error(`Tensor ${name} is not found`);
     }
+    console.info(`Tensor name : ${name} `);
     return this._tensorIds[name];
   }
 
@@ -810,6 +811,22 @@ class OpenVINOModelImporter {
           const outputId = this._addNamedOperand(output.graphId(), outputType);
           outputs.push(outputId);
           console.log(`  output shape: [${outDims}]`);
+        } break;
+        case 'ReLU': {
+          const input = node.inputs[0];
+          console.log(`  input shape: [${input.shape()}]`);
+          inputs.push(this._getTensorId(input));
+
+          const output = node.outputs[0];
+          const outDims = output.shape();
+          const outputType = {
+            type: this._getTypeCode(output.dataType()), dimensions: outDims
+          };
+          const outputId = this._addNamedOperand(output.graphId(), outputType);
+          outputs.push(outputId);
+          console.log(`  output shape: [${outDims}]`);
+
+          opCode = this._nn.PRELU;
         } break;
         default: {
           throw new Error(`${node.operator} is not supported.`);
