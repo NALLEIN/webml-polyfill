@@ -403,17 +403,18 @@ class OpenVINOModelImporter {
           }
 
           let output = node.outputs[0];
-          const nextNode = graph.nodes[i+1];
-          if (nextNode && ['Clamp', 'ReLU'].includes(nextNode.operator) &&
-              node.outputs[0].graphId() === nextNode.inputs[0].graphId()) {
-            // Fuse relu
-            inputs.push(this._addScalarInt32(this._getFuseCode(nextNode)));
-            i++;
-            console.log(`  fuse relu: output of ${nextNode.name}->${node.name}`);
-            output = nextNode.outputs[0];
-          } else {
-            inputs.push(this._addScalarInt32(this._nn.FUSED_NONE));
-          }
+          // const nextNode = graph.nodes[i+1];
+          // if (nextNode && ['Clamp', 'ReLU'].includes(nextNode.operator) &&
+          //     node.outputs[0].graphId() === nextNode.inputs[0].graphId()) {
+          //   // Fuse relu
+          //   inputs.push(this._addScalarInt32(this._getFuseCode(nextNode)));
+          //   i++;
+          //   console.log(`  fuse relu: output of ${nextNode.name}->${node.name}`);
+          //   output = nextNode.outputs[0];
+          // } else {
+          //   inputs.push(this._addScalarInt32(this._nn.FUSED_NONE));
+          // }
+          inputs.push(this._addScalarInt32(this._nn.FUSED_NONE));
 
           // Add outputs
           const outDims = output.shape();
@@ -693,7 +694,45 @@ class OpenVINOModelImporter {
               console.log(`  output shape: [${outDims}]`);
 
               this._addOperation(this._nn.TRANSPOSE, inputs, outputs);
-            } else {
+            } 
+
+            else if(order.length === 6) {
+              console.log(`  input shape: [${inDims}]`);
+              // Converte order data: NC[3]HW -> NHWC[3]
+              let orderTmp = [];
+              for (let i = 0; i < order.length; i++) {
+                if (order[i] === 0) {
+                  orderTmp[i] = order[i];
+                } else if (order[i] === 1) {
+                  orderTmp[i] = 4;
+                } else if (order[i] === 2) {
+                  orderTmp[i] = 5;
+                } else if (order[i] === 3) {
+                  orderTmp[i] = 1;
+                } else if (order[i] === 4) {
+                  orderTmp[i] = 2;
+                } else {
+                  orderTmp[i] = 3;
+                }
+              }
+
+              // Converte order data format: NCHW -> NHWC
+              const newOrder = [orderTmp[0], orderTmp[4], orderTmp[5], orderTmp[1], orderTmp[2], orderTmp[3]];
+
+              inputs.push(inputId);
+              inputs.push(this._addTensorInt32(newOrder, [4]));
+
+              const outDims = output.shape();
+              const outputType = {
+                type: this._getTypeCode(output.dataType()), dimensions: outDims
+              };
+              const outputId = this._addNamedOperand(outputName, outputType);
+              outputs.push(outputId);
+              console.log(`  output shape: [${outDims}]`);
+
+              this._addOperation(this._nn.TRANSPOSE, inputs, outputs);
+            }
+            else {
               throw new Error(`Permuting to ${order} is not supported`);
             }
           }
@@ -837,6 +876,37 @@ class OpenVINOModelImporter {
           outputs.push(outputId);
           console.log(`  output shape: [${outDims}]`);
           opCode = this._nn.RELU;
+        } break;
+        case 'Power': {
+          const input = node.inputs[0];
+          inputs.push(this._getTensorId(input));
+          console.log(`  inputs shape: ` +
+          `[${node.inputs.map((input) => input.shape()).join('], [')}]`);
+
+          const power = node.getInt('power',1);
+          const scale = node.getFloat('scale',1.0);
+          const shift = node.getInt('shift',0);
+
+          if(power === 1 && shift === 0) {
+            const dims = [1, 1, 1, 1];
+  
+            inputs.push(this._addTensorFloat32(scale, dims));
+            inputs.push(this._addScalarInt32(this._nn.FUSED_NONE));
+
+            const output = node.outputs[0];
+            const outDims = output.shape();
+            const outputType = {
+              type: this._getTypeCode(output.dataType()), dimensions: outDims
+            };
+            const outputId = this._addNamedOperand(output.graphId(), outputType);
+            outputs.push(outputId);
+            console.log(`  output shape: [${outDims}]`);
+  
+            this._addOperation(this._nn.MUL,inputs,outputs);
+          }
+          else {
+            // TODO find ops to replace power
+          }
         } break;
         default: {
           throw new Error(`${node.operator} is not supported.`);
