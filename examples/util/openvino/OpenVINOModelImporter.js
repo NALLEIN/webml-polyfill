@@ -694,33 +694,30 @@ class OpenVINOModelImporter {
               console.log(`  output shape: [${outDims}]`);
 
               this._addOperation(this._nn.TRANSPOSE, inputs, outputs);
-            } 
-
-            else if(order.length === 6) {
+            }  else { 
+              if(order.length === 6) {
               console.log(`  input shape: [${inDims}]`);
-              // Converte order data: NC[3]HW -> NHWC[3]
-              let orderTmp = [];
-              for (let i = 0; i < order.length; i++) {
-                if (order[i] === 0) {
-                  orderTmp[i] = order[i];
-                } else if (order[i] === 1) {
-                  orderTmp[i] = 4;
-                } else if (order[i] === 2) {
-                  orderTmp[i] = 5;
-                } else if (order[i] === 3) {
-                  orderTmp[i] = 1;
-                } else if (order[i] === 4) {
-                  orderTmp[i] = 2;
-                } else {
-                  orderTmp[i] = 3;
-                }
-              }
-
-              // Converte order data format: NCHW -> NHWC
-              const newOrder = [orderTmp[0], orderTmp[4], orderTmp[5], orderTmp[1], orderTmp[2], orderTmp[3]];
-
+              // no specific rules for tensor6D format so didn't reorder here
+              // let orderTmp = [];
+              // for (let i = 0; i < order.length; i++) {
+              //   if (order[i] === 0) {
+              //     orderTmp[i] = order[i];
+              //   } else if (order[i] === 1) {
+              //     orderTmp[i] = 4;
+              //   } else if (order[i] === 2) {
+              //     orderTmp[i] = 5;
+              //   } else if (order[i] === 3) {
+              //     orderTmp[i] = 1;
+              //   } else if (order[i] === 4) {
+              //     orderTmp[i] = 2;
+              //   } else {
+              //     orderTmp[i] = 3;
+              //   }
+              // }
+              // Converte order data format: NC[3]HW -> NHWC[3]
+              // const newOrder = [orderTmp[0], orderTmp[4], orderTmp[5], orderTmp[1], orderTmp[2], orderTmp[3]];
               inputs.push(inputId);
-              inputs.push(this._addTensorInt32(newOrder, [4]));
+              inputs.push(this._addTensorInt32(order, [6]));
 
               const outDims = output.shape();
               const outputType = {
@@ -735,6 +732,7 @@ class OpenVINOModelImporter {
             else {
               throw new Error(`Permuting to ${order} is not supported`);
             }
+          }
           }
         } break;
         case 'Const': {
@@ -890,7 +888,7 @@ class OpenVINOModelImporter {
           if(power === 1 && shift === 0) {
             const dims = [1, 1, 1, 1];
   
-            inputs.push(this._addTensorFloat32(scale, dims));
+            inputs.push(this._addTensorFloat32(new Float32Array([scale]), dims));
             inputs.push(this._addScalarInt32(this._nn.FUSED_NONE));
 
             const output = node.outputs[0];

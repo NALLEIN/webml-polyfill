@@ -669,10 +669,15 @@ const modelZoo = {
       format: 'OpenVINO',
       modelId: 'image-super-resolution-1032model',
       modelSize: '120KB',
-      inputSize: [1, 3, 270, 480],
-      outputSize: [1, 3, 1080, 1920],
+      inputSize: [270, 480, 3],
+      outputSize: [1080, 1920, 3],
       scale: 4,
       modelFile: '../super_resolution/model/single-image-super-resolution-1032.bin',
+      preOptions: {
+        mean: [1, 1, 1],
+        std: [0, 0, 0],
+        channelScheme: 'BGR',
+      },
       intro: 'An Attention-Based Approach for Single Image Super Resolution',
       paperUrl: 'https://arxiv.org/abs/1807.06779'
     },
@@ -681,10 +686,15 @@ const modelZoo = {
       format: 'OpenVINO',
       modelId: 'image-super-resolution-1033model',
       modelSize: '122KB',
-      inputSize: [1, 3, 360, 640],
-      outputSize: [1, 3, 1080, 1920],
+      inputSize: [360, 640, 3],
+      outputSize: [1080, 1920, 3],
       scale: 3,
       modelFile: '../super_resolution/model/single-image-super-resolution-1033.bin',
+      preOptions: {
+        mean: [1, 1, 1],
+        std: [0, 0, 0],
+        channelScheme: 'BGR',
+      },
       intro: 'An Attention-Based Approach for Single Image Super Resolution',
       paperUrl: 'https://arxiv.org/abs/1807.06779'
     }
